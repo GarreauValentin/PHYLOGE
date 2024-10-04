@@ -1,199 +1,98 @@
 > data <- readDiscreteCharacterData("data/sequence_data.nex")
-
    Successfully read one character matrix from file 'data/sequence_data.nex'
 
 > num_taxa <- data.ntaxa()
-
 > num_branches <- 2 * num_taxa - 3
-
 > taxa <- data.taxa()
-
 > num_sites <- data.nchar()
-
 > kappa ~ dnUniform(lower=0, upper=10)
-
 > gamma ~ dnBeta(1.0, 1.0)
-
 > Q := fnT92(kappa = kappa, gc = gamma)
-
 > seq ~ dnPhyloCTMC(tree=psi, Q=Q, type="DNA")
-
    Missing Variable: Variable psi does not exist
 
 > out_group = clade("Lemur_catta")
-
 > topology ~ dnUniformTopology(taxa, outgroup=out_group)
-
-
-
 > for (i in 1:num_branches) {
-
 +    br_lens[i] ~ dnExponential(10.0)
-
 + }
 
 > psi := treeAssembly(topology, br_lens)
-
 > moves = VectorMoves()
-
 > moves.append(mvNNI(topology, weight=3.0))
-
 > moves.append(mvSPR(topology, weight=3.0))
-
 > moves.append(mvSlide(gamma, weight=1.0))
-
 > moves.append(mvScale(kappa, weight=1.0))
-
-
 > n_branches <- 2 * num_taxa - 3
-
-
-
 > for (i in 1:n_branches) {
-
 +    moves.append(mvScale(br_lens[i], weight=1.0))
-
 + }
 
 > mymodel = model(Q)
-
 > mymodel
-
-   
-
    Model with 7 nodes
-
    ==================
-
-   
-
    Q :
-
    _value        = [ [ -0.9902, 0.4041, 0.0708, 0.5153 ] ,...
-
    _type         = Deterministic node (function)
-
    _function     = fnT92(RealPos<any> kappa, Probability<any> gc)
-
    _parents      = [ gamma, kappa ]
-
    _children     = [  ]
 
-   
-
    gamma :
-
    _value        = 0.4395003
-
    _dagType      = Stochastic node (distribution)
-
    _distribution = dnBeta(RealPos<any> alpha, RealPos<any> beta)
-
    _clamped      = FALSE
-
    _lnProb       = 0
-
    _parents      = [ <0x7fb4ecf14c10>, <0x7fb4ecf14d20> ]
-
    _children     = [ Q ]
 
-   
-
-   
 
    <0x7fb4ecf14c10> :
-
    _value        = 1
-
    _dagType      = Constant node
-
    _children     = [ gamma ]
-
-   
 
    <0x7fb4ecf14d20> :
-
    _value        = 1
-
    _dagType      = Constant node
-
    _children     = [ gamma ]
 
-   
-
    kappa :
-
    _value        = 0.1752953
-
    _dagType      = Stochastic node (distribution)
-
    _distribution = dnUniform(RealPos<any> lower, RealPos<any> upper)
-
    _clamped      = FALSE
-
    _lnProb       = -2.30259
-
    _parents      = [ <0x7fb4ecf14f80>, <0x7fb4ecf15090> ]
-
    _children     = [ Q ]
 
-   
-
-   
-
    <0x7fb4ecf14f80> :
-
    _value        = 0
-
    _dagType      = Constant node
-
    _children     = [ kappa ]
-
-   
 
    <0x7fb4ecf15090> :
-
    _value        = 10
-
    _dagType      = Constant node
-
    _children     = [ kappa ]
 
-   
-
-   
 
 > moves = VectorMoves()
-
 > moves.append( mvNNI(topology, weight=3) )
-
-
 > for (i in 1:n_branches) {
-
 +     moves.append( mvScale(br_lens[i]) )
-
 + }
-
 > TL := sum(br_lens)
-
 > monitors = VectorMonitors()
-
-> 
-
 > monitors.append( mnModel(filename="analyses/sequence_data.log", printgen=10) )
-
 > monitors.append( mnFile(filename="analyses/seuqence_data.trees", printgen=10, psi) )
-
 > monitors.append( mnScreen(printgen=100, TL) )
-
-
 > out_group = clade("Lemur_catta")                      
-
-
 >  topology ~ dnUniformTopology(taxa, outgroup=out_group)
 
 > mymcmc = mcmc(mymodel, monitors, moves)
-
    Error: Cannot find node with name 'topology' in the model but received a move working on it.
 
 > 
