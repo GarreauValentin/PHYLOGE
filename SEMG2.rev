@@ -23,13 +23,31 @@ TL := sum(bl)
 kappa ~ dnUniform(lower=0, upper=10)
 nucstat ~ dnDirichlet([1.0, 1.0, 1.0, 1.0])
 
-omega ~ dnUniform(lower=0, upper=2)
-omeg2 ~ dnUniform(lower=0, upper=2)
-omega1 ~ dnUniform(lower=0, upper=2)
-Q := fnCodonHKY(omega=omega, kappa=kappa, baseFrequencies=nucstat)
-Q1 := fnCodonHKY(omega=omega1, kappa=kappa, baseFrequencies=nucstat)
-Q2 := fnCodonHKY(omega=omega2, kappa=kappa, baseFrequencies=nucstat)
+# Paramètres Omega
+omega ~ dnUniform(lower = 0, upper = 2)  
+omega1 ~ dnUniform(lower = 0, upper = 2)  # Polygame
+omega2 ~ dnUniform(lower = 0, upper = 2)  # Monogame
 
+# Substitution matrices pour les deux types d'espèces
+Q := fnCodonHKY(omega = omega1, kappa = kappa, baseFrequencies = nucstat) #Intérieur branches
+Q1 := fnCodonHKY(omega = omega1, kappa = kappa, baseFrequencies = nucstat)  # Polygame
+Q2 := fnCodonHKY(omega = omega2, kappa = kappa, baseFrequencies = nucstat)  # Monogame
+
+# Lecture manuelle du fichier des systèmes d'appariement
+mating_systems <- v(1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0)
+# Ce vecteur doit correspondre à l'ordre des espèces dans le fichier de données de séquences
+
+# Boucle pour assigner omega1 ou omega2 aux feuilles externes de l'arbre
+Q_list <- VectorDistributionQ()
+
+for (i in 1:n_species) {
+    # Vérifier si l'espèce est polygame (1) ou monogame (0)
+    if (mating_systems[i] == 1) {
+        Q_list[i] <- Q1  # Polygame -> omega1
+    } else {
+        Q_list[i] <- Q2  # Monogame -> omega2
+    }
+}
 
 seq ~ dnPhyloCTMC( tree=psi, Q=Q, type="Codon" ) 
 #seq.clamp( data_codon )
