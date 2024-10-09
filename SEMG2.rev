@@ -34,11 +34,10 @@ Q1 := fnCodonHKY(omega = omega1, kappa = kappa, baseFrequencies = nucstat)  # Po
 Q2 := fnCodonHKY(omega = omega2, kappa = kappa, baseFrequencies = nucstat)  # Monogame
 
 # Lecture manuelle du fichier des systèmes d'appariement
-mating_systems <- v(1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0)
-# Ce vecteur doit correspondre à l'ordre des espèces dans le fichier de données de séquences
+mating_systems <- readDiscreteCharacterData("data/character_data.fas")
 
 # Boucle pour assigner omega1 ou omega2 aux feuilles externes de l'arbre
-Q_list <- VectorDistributionQ("data/character_data.fas")
+Q_list <- VectorDistributionQ()
 
 for (i in 1:n_species) {
     # Vérifier si l'espèce est polygame (1) ou monogame (0)
