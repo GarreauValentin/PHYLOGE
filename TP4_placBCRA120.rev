@@ -1,0 +1,52 @@
+data <- readDiscreteCharacterData("data/placBRCA120.nex")
+data_codon = data.translateCharacters("Codon")
+
+n_species <- data.ntaxa()
+n_branches <- 2 * n_species - 3
+taxa <- data.taxa()
+
+out_group = clade("Sorex")
+
+# tree topology
+topology ~ dnUniformTopology(taxa, outgroup = out_group) 
+for (i in 1:n_branches) {
+ bl[i] ~ dnExponential(10.0)
+}
+psi := treeAssembly(topology, bl)
+
+# total tree length (just for monitoring)
+TL := sum(bl)
+
+# Codon substitution process
+kappa ~ dnUniform(lower=0, upper=10)
+nucstat ~ dnDirichlet([1.0, 1.0, 1.0, 1.0])
+omega ~ dnExponential(1/5)
+Q := fnCodonHKY(omega=omega, kappa=kappa, baseFrequencies=nucstat)
+seq ~ dnPhyloCTMC( tree=psi, Q=Q, type="Codon" ) 
+seq.clamp( data_codon )
+
+my_model = model(psi)
+
+# moves
+moves = VectorMoves()
+moves.append(mvNNI(topology, weight=3.0))
+moves.append(mvSPR(topology, weight=3.0))
+moves.append( mvScale(omega, lambda=1.0, weight=1.0) )
+moves.append(mvScale(kappa, weight=1.0))
+for (i in 1:n_branches) {
+   moves.append(mvScale(bl[i], weight=1.0))
+}
+
+monitors[1] = mnModel(filename="analyses/placBRCA120.log", printgen=10, separator = TAB)
+monitors[2] = mnFile(psi,filename="analyses/placBRCA120.trees", printgen=10, separator = TAB)
+monitors[3] = mnScreen(printgen=100, TL)
+
+# Make the analysis object
+analysis = mcmc(my_model, monitors, moves)
+# Run the MCMC
+analysis.run(10000)
+
+# Post-analysis: constructing the maximum a posteriori tree
+treetrace = readTreeTrace("analyses/placBRCA120.trees", treetype="non-clock", burnin=0.1)
+map_tree = mapTree(treetrace, "analyses/placBRCA120_map.tree")
+
