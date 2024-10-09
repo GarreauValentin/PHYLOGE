@@ -38,7 +38,7 @@ mating_systems <- v(1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 
 # Ce vecteur doit correspondre à l'ordre des espèces dans le fichier de données de séquences
 
 # Boucle pour assigner omega1 ou omega2 aux feuilles externes de l'arbre
-Q_list <- VectorDistributionQ()
+Q_list <- VectorDistributionQ("data/character_data.fas")
 
 for (i in 1:n_species) {
     # Vérifier si l'espèce est polygame (1) ou monogame (0)
