@@ -24,12 +24,12 @@ kappa ~ dnUniform(lower=0, upper=10)
 nucstat ~ dnDirichlet([1.0, 1.0, 1.0, 1.0])
 
 # Paramètres Omega
-omega ~ dnUniform(lower = 0, upper = 2)  
+omega0 ~ dnUniform(lower = 0, upper = 2)  
 omega1 ~ dnUniform(lower = 0, upper = 2)  # Polygame
 omega2 ~ dnUniform(lower = 0, upper = 2)  # Monogame
 
 # Substitution matrices pour les deux types d'espèces
-Q := fnCodonHKY(omega = omega1, kappa = kappa, baseFrequencies = nucstat) #Intérieur branches
+Q := fnCodonHKY(omega = omega0, kappa = kappa, baseFrequencies = nucstat) #Intérieur branches
 Q1 := fnCodonHKY(omega = omega1, kappa = kappa, baseFrequencies = nucstat)  # Polygame
 Q2 := fnCodonHKY(omega = omega2, kappa = kappa, baseFrequencies = nucstat)  # Monogame
 
