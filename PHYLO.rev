@@ -1,0 +1,100 @@
+# Lecture des données de séquences ADN
+data <- readDiscreteCharacterData("data/masked_semg_primates.fst")
+data
+data_codon = data.translateCharacters("Codon")
+
+# Extraction des états pour chaque taxon
+mating_systems <- readDiscreteCharacterData("data/character_data2.nex.fst")
+mating_systems
+
+tree <- readTrees("output/SEMG2.tree")[1]
+
+n_species <- data.ntaxa()
+n_branches <- 2 * n_species - 3
+taxa <- data.taxa()
+taxa
+
+# Définir le groupe externe
+out_group = clade("Lemur_catta")
+
+# Définir la topologie de l'arbre
+topology ~ dnUniformTopology(taxa, outgroup = out_group)
+for (i in 1:n_branches) {
+  bl[i] ~ dnExponential(10.0)  # Longueurs de branches avec une distribution exponentielle
+}
+
+# Assemblage de l'arbre phylogénétique
+psi := treeAssembly(topology, bl)
+
+# Longueur totale de l'arbre (juste pour suivi)
+TL := sum(bl)
+
+# Paramètres Omega
+omega0 ~ dnUniform(lower = 0, upper = 2)  # Monogame
+omega1 ~ dnUniform(lower = 0, upper = 2)  # Polygame    Gene entier trés rare d'avoir un dN/dS plus élevé 
+omega2 ~ dnUniform(lower = 0, upper = 2)  # Branches internes
+
+# Paramètres du processus de substitution
+kappa ~ dnUniform(lower = 0, upper = 10)
+nucstat ~ dnDirichlet([1.0, 1.0, 1.0, 1.0])
+
+# Matrices de substitution pour les branches externes et internes
+Q0 := fnCodonHKY(omega = omega0, kappa = kappa, baseFrequencies = nucstat)  # Monogame
+Q1 := fnCodonHKY(omega = omega1, kappa = kappa, baseFrequencies = nucstat)  # Polygame
+Q2 := fnCodonHKY(omega = omega2, kappa = kappa, baseFrequencies = nucstat)  # Branches internes
+
+# Create a vector to store the substitution matrices for each branch
+#branch_Q := rep(0, n_species)  # Initialize with zeros or any placeholder
+
+# Loop over species and assign the correct substitution matrix based on mating system
+for (i in 1:n_species) {
+    if (mating_systems.taxonIndex(tree.nodeName(i)) == 1) {
+        branch_Q[i] := Q1  # Polygamous species (omega1)
+    } else {
+        branch_Q[i] := Q0  # Non-polygamous species (omega0)
+    }
+}
+
+# Pour les branches internes, on assigne omega2
+for (i in (n_species + 1):n_branches) {
+  branch_Q[i] <- Q2  # Utilise omega2 pour les branches internes
+}
+
+# Modélisation du processus de substitution phylogénétique avec les matrices de substitution
+rootFrequencies := Q2.getStationaryFrequencies()
+seq ~ dnPhyloCTMC(tree = psi, Q = branch_Q, type = "Codon", rootFrequencies = rootFrequencies)
+
+
+# Clampe les données de séquences
+seq.clamp(data_codon)  # Si les données de codons sont disponibles, active cette ligne
+
+# Définir le modèle phylogénétique
+my_model = model(psi)
+
+# Mouvements MCMC
+moves = VectorMoves()
+moves.append(mvNNI(topology, weight = 3.0))  # NNI (Nearest Neighbor Interchange) pour améliorer la topologie
+moves.append(mvSPR(topology, weight = 3.0))  # SPR (Subtree Pruning and Regrafting) pour améliorer la topologie
+moves.append(mvScale(omega0, lambda = 1.0, weight = 1.0))  # Mouvements sur omega0
+moves.append(mvScale(omega1, lambda = 1.0, weight = 1.0))  # Mouvements sur omega1
+moves.append(mvScale(omega2, lambda = 1.0, weight = 1.0))  # Mouvements sur omega2
+moves.append(mvScale(kappa, weight = 1.0))  # Mouvements sur kappa
+for (i in 1:n_branches) {
+  moves.append(mvScale(bl[i], weight = 1.0))  # Mouvements sur les longueurs de branches
+}
+
+# Moniteurs pour enregistrer les résultats
+monitors[1] = mnModel(filename = "output/SMG2.log", printgen = 10, separator = TAB)
+monitors[2] = mnFile(psi, filename = "output/SMG2.trees", printgen = 10, separator = TAB)
+monitors[3] = mnScreen(printgen = 100, TL, omega0, omega1, omega2)
+
+# Créer l'objet MCMC
+analysis = mcmc(my_model, monitors, moves)
+
+# Exécuter la chaîne MCMC
+analysis.run(10000)
+
+# Analyse postérieure : construction de l'arbre avec maximum de probabilité a posteriori
+treetrace = readTreeTrace("output/SMG2.trees", treetype = "non-clock", burnin = 0.1)
+map_tree = mapTree(treetrace, "output/SMG2.tree")
+
