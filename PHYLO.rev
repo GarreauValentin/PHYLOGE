@@ -7,7 +7,7 @@ data_codon = data.translateCharacters("Codon")
 mating_systems <- readDiscreteCharacterData("data/character_data2.nex.fst")
 mating_systems
 
-tree <- readTrees("output/SEMG2.tree")[1]
+tree <- readTrees("output/BRCA1_HKY_map.tree")[1]
 
 n_species <- data.ntaxa()
 n_branches <- 2 * n_species - 3
